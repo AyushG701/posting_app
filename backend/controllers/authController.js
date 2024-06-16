@@ -29,7 +29,7 @@ export const register = async (req, res, next) => {
     });
 
     //send email verification to user
-    // sendVerificationEmail(user, res);
+    sendVerificationEmail(user, res);
   } catch (error) {
     console.log(error);
     res.status(404).json({ message: error.message });
@@ -57,12 +57,12 @@ export const login = async (req, res, next) => {
       return;
     }
 
-    // if (!user?.verified) {
-    //   next(
-    //     "User email is not verified. Check your email account and verify your email"
-    //   );
-    //   return;
-    // }
+    if (!user?.verified) {
+      next(
+        "User email is not verified. Check your email account and verify your email",
+      );
+      return;
+    }
 
     // compare password
     const isMatch = await compareString(password, user?.password);
