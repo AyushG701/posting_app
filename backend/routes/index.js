@@ -6,6 +6,6 @@ import userRoute from "./userRoutes.js";
 const router = express.Router();
 
 router.use(`/auth`, authRoute); //auth/register
-router.use(`/user`, userRoute); //auth/register
+router.use(`/users`, userRoute); //auth/register
 
 export default router;
