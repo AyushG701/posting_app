@@ -9,7 +9,4 @@ const requestSchema = Schema(
   { timestamps: true },
 );
 
-export const friendRequestModel = mongoose.model(
-  "FriendRequest",
-  requestSchema,
-);
+export const FriendRequest = mongoose.model("FriendRequest", requestSchema);

@@ -1,7 +1,10 @@
 import express from "express";
 import path from "path";
 import {
+  acceptFriendRequest,
   changePassword,
+  friendRequest,
+  getFriendRequest,
   getUser,
   requestPasswordReset,
   resetPassword,
