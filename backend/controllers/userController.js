@@ -159,3 +159,163 @@ export const requestPasswordReset = async (req, res) => {
     res.status(404).json({ message: error.message });
   }
 };
+
+export const resetPassword = async (req, res) => {
+  const { userId, token } = req.params;
+
+  try {
+    // find record
+    const user = await Users.findById(userId);
+
+    if (!user) {
+      const message = "Invalid password reset link. Try again";
+      res.redirect(`/users/resetpassword?status=error&message=${message}`);
+    }
+
+    const resetPassword = await PasswordReset.findOne({ userId });
+
+    if (!resetPassword) {
+      const message = "Invalid password reset link. Try again";
+      return res.redirect(
+        `/users/resetpassword?status=error&message=${message}`,
+      );
+    }
+
+    const { expiresAt, token: resetToken } = resetPassword;
+
+    if (expiresAt < Date.now()) {
+      const message = "Reset Password link has expired. Please try again";
+      res.redirect(`/users/resetpassword?status=error&message=${message}`);
+    } else {
+      const isMatch = await compareString(token, resetToken);
+
+      if (!isMatch) {
+        const message = "Invalid reset password link. Please try again";
+        res.redirect(`/users/resetpassword?status=error&message=${message}`);
+      } else {
+        res.redirect(`/users/resetpassword?type=reset&id=${userId}`);
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { userId, password } = req.body;
+
+    const hashedpassword = await hashString(password);
+
+    const user = await Users.findByIdAndUpdate(
+      { _id: userId },
+      { password: hashedpassword },
+    );
+
+    if (user) {
+      await PasswordReset.findOneAndDelete({ userId });
+
+      res.status(200).json({
+        ok: true,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
+
+// Function to fetch user details by userId or id
+export const getUser = async (req, res, next) => {
+  try {
+    // Destructure userId from req.body.user and id from req.params
+    const { userId } = req.body.user;
+    const { id } = req.params;
+
+    // Find user by id (if id is provided) or userId (fallback to userId if id is not provided)
+    const user = await Users.findById(id ?? userId).populate({
+      path: "friends", // Populate the 'friends' field of the user object
+      select: "-password", // Exclude the 'password' field from the 'friends' data
+    });
+
+    // If user is not found, send a response indicating 'User Not Found'
+    if (!user) {
+      return res.status(200).send({
+        message: "User Not Found",
+        success: false,
+      });
+    }
+
+    // Remove the 'password' field from the user object for security reasons
+    user.password = undefined;
+
+    // Send a success response with the user object (excluding password)
+    res.status(200).json({
+      success: true,
+      user: user,
+    });
+  } catch (error) {
+    // Handle any errors that occur during the process
+    console.log(error);
+    res.status(500).json({
+      message: "auth error", // Error message indicating authentication error
+      success: false,
+      error: error.message, // Detailed error message
+    });
+  }
+};
+
+// Function to update user information
+export const updateUser = async (req, res, next) => {
+  try {
+    // Destructure fields from req.body
+    const { firstName, lastName, location, profileUrl, profession } = req.body;
+
+    // Check if at least one of the required fields is provided
+    if (!(firstName || lastName || location || profileUrl || profession)) {
+      next("Please provide at least one field to update");
+      return;
+    }
+
+    // Extract userId from req.body.user
+    const { userId } = req.body.user;
+
+    // Prepare object with fields to update
+    const updateUser = {
+      firstName,
+      lastName,
+      location,
+      profileUrl,
+      profession,
+    };
+
+    // Find user by userId and update information, returning the updated user (new: true)
+    const user = await Users.findByIdAndUpdate(userId, updateUser, {
+      new: true,
+    });
+
+    // Populate the 'friends' field of the updated user, excluding 'password' field
+    // await user
+    //   .populate({ path: "friends", select: "-password" })
+    //   .execPopulate();
+
+    // Create a new JWT token for the updated user
+    const token = createJWT(user?._id);
+
+    // Remove 'password' field from user object for security
+    user.password = undefined;
+
+    // Send a success response with updated user details, message, and token
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user,
+      token,
+    });
+  } catch (error) {
+    // Handle errors and send error response
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};

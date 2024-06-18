@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 import { hashString } from "./index.js";
 import Verification from "../models/emailVerification.js";
+import PasswordReset from "../models/PasswordReset.js";
 
 dotenv.config();
 
@@ -91,16 +92,21 @@ export const sendVerificationEmail = async (user, res) => {
 };
 
 export const resetPasswordLink = async (user, res) => {
+  // Destructure user object to get _id and email
   const { _id, email } = user;
 
+  // Generate a unique token for password reset link using user's _id and uuidv4
   const token = _id + uuidv4();
+
+  // Construct the reset password link using APP_URL, user's _id, and the generated token
   const link = APP_URL + "users/reset-password/" + _id + "/" + token;
 
-  //   mail options
+  // Mail options for sending the password reset email
   const mailOptions = {
-    from: AUTH_EMAIL,
-    to: email,
-    subject: "Password Reset",
+    from: AUTH_EMAIL, // Sender's email address
+    to: email, // Recipient's email address (user's email)
+    subject: "Password Reset", // Email subject
+    // HTML content of the email with the reset password link
     html: `<p style="font-family: Arial, sans-serif; font-size: 16px; color: #333; background-color: #f7f7f7; padding: 20px; border-radius: 5px;">
          Password reset link. Please click the link below to reset password.
         <br>
@@ -111,31 +117,38 @@ export const resetPasswordLink = async (user, res) => {
   };
 
   try {
+    // Hash the generated token before storing it
     const hashedToken = await hashString(token);
 
+    // Create a new PasswordReset document in the database
     const resetEmail = await PasswordReset.create({
-      userId: _id,
-      email: email,
-      token: hashedToken,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 600000,
+      userId: _id, // User's _id
+      email: email, // User's email
+      token: hashedToken, // Hashed token for security
+      createdAt: Date.now(), // Timestamp when the reset email was created
+      expiresAt: Date.now() + 600000, // Timestamp when the reset link expires (10 minutes from now)
     });
 
+    // If PasswordReset document creation is successful
     if (resetEmail) {
+      // Send the password reset email using the transporter (assumed to be defined elsewhere)
       transporter
         .sendMail(mailOptions)
         .then(() => {
+          // Send success response if email is sent successfully
           res.status(201).send({
             success: "PENDING",
             message: "Reset Password Link has been sent to your account.",
           });
         })
         .catch((err) => {
+          // Log and send error response if sending email fails
           console.log(err);
           res.status(404).json({ message: "Something went wrong" });
         });
     }
   } catch (error) {
+    // Catch any errors that occur during token hashing or database operation
     console.log(error);
     res.status(404).json({ message: "Something went wrong" });
   }
