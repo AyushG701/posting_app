@@ -124,3 +124,40 @@ export const getPosts = async (req, res, next) => {
     next(error); // Pass the error to the error handling middleware
   }
 };
+
+export const getPost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const post = await Posts.findById(id).populate({
+      path: "userId",
+      select: "firstName lastName location profileUrl -password",
+    });
+    // .populate({
+    //   path: "comments",
+    //   populate: {
+    //     path: "userId",
+    //     select: "firstName lastName location profileUrl -password",
+    //   },
+    //   options: {
+    //     sort: "-_id",
+    //   },
+    // })
+    // .populate({
+    //   path: "comments",
+    //   populate: {
+    //     path: "replies.userId",
+    //     select: "firstName lastName location profileUrl -password",
+    //   },
+    // });
+
+    res.status(200).json({
+      sucess: true,
+      message: "successfully",
+      data: post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
