@@ -11,7 +11,7 @@ import {
   updateUser,
   verifyEmail,
 } from "../controllers/userController.js";
-import { resetPasswordLink } from "../utils/sendEmail.js";
+// import { resetPasswordLink } from "../utils/sendEmail.js";
 import userAuth from "../middleware/authHandler.js";
 
 const router = express.Router();
@@ -20,8 +20,8 @@ const __dirname = path.resolve(path.dirname(""));
 router.get("/verify/:userId/:token", verifyEmail);
 
 // Password Reset
-router.get("/reset-password/:userId/:token", resetPasswordLink);
-router.post("/request-passwordreset", resetPassword);
+router.get("/reset-password/:userId/:token", requestPasswordReset);
+router.post("/request-password-reset", resetPassword);
 router.post("/reset-password", changePassword);
 
 // user routes
@@ -33,6 +33,12 @@ router.post("get-friend-request", userAuth, getFriendRequest);
 
 // accept / deny friend request
 router.post("/accept-friend-request", userAuth, acceptFriendRequest);
+
+//view profile
+router.post("/profile-view", userAuth, profileViews);
+
+//suggested friends
+router.post("/suggested-friends", userAuth, suggestedFriends);
 
 router.get("/verified", (req, res) => {
   res.sendFile(path.join(__dirname, "./views/build/verifiedpage.html"));

@@ -442,3 +442,91 @@ export const acceptFriendRequest = async (req, res, next) => {
     });
   }
 };
+
+//view profile c
+export const profileViews = async (req, res, next) => {
+  try {
+    const { userId } = req.body.user;
+    const { id } = req.body;
+
+    // Fetch the user profile
+    const user = await Users.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check for duplicate view
+    if (!user.views.includes(userId)) {
+      user.views.push(userId);
+    }
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "auth error",
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+export const suggestedFriends = async (req, res) => {
+  try {
+    if (!req.body || !req.body.user || !req.body.user.userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required user information",
+      });
+    }
+
+    const { userId } = req.body.user;
+
+    // Ensure userId is a valid ObjectId (assuming MongoDB)
+    if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID format",
+      });
+    }
+
+    let queryObject = {
+      _id: { $ne: userId },
+      friends: { $nin: userId },
+    };
+
+    // Default values for pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+    const skip = (page - 1) * limit;
+
+    const queryResult = Users.find(queryObject)
+      .skip(skip)
+      .limit(limit)
+      .select("firstName lastName profileUrl profession -password");
+
+    const suggestedFriends = await queryResult;
+
+    res.status(200).json({
+      success: true,
+      message: `${suggestedFriends.length} suggested friends found`,
+      data: suggestedFriends,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
