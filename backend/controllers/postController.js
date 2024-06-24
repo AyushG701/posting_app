@@ -161,3 +161,98 @@ export const getPost = async (req, res, next) => {
     res.status(404).json({ message: error.message });
   }
 };
+
+export const getUserPost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const post = await Posts.find({ userId: id })
+      .populate({
+        path: "userId",
+        select: "firstName lastName location profileUrl -password",
+      })
+      .sort({ _id: -1 });
+
+    res.status(200).json({
+      sucess: true,
+      message: "successfully",
+      data: post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
+
+export const getComments = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+
+    const postComments = await Comments.find({ postId })
+      .populate({
+        path: "userId",
+        select: "firstName lastName location profileUrl -password",
+      })
+      .populate({
+        path: "replies.userId",
+        select: "firstName lastName location profileUrl -password",
+      })
+      .sort({ _id: -1 });
+
+    res.status(200).json({
+      success: true,
+      message: "successfully",
+      data: postComments,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
+
+export const likePost = async (req, res, next) => {
+  try {
+    const { userId } = req.body.user;
+    const { id } = req.params;
+
+    // Validate post ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID",
+      });
+    }
+    const post = await Posts.findById(id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+    // Check if the user has already liked the post
+    const hasLiked = post.likes.includes(String(userId));
+
+    // Update likes array
+    const updatedLikes = hasLiked
+      ? post.likes.filter((pid) => pid !== String(userId))
+      : [...post.likes, userId];
+
+    const updatedPost = await Posts.findByIdAndUpdate(
+      id,
+      { likes: updatedLikes },
+      { new: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: hasLiked
+        ? "Post unliked successfully"
+        : "Post liked successfully",
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
