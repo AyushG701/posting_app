@@ -349,3 +349,32 @@ export const commentPost = async (req, res, next) => {
     res.status(404).json({ message: error.message });
   }
 };
+
+export const replyPostComment = async (req, res, next) => {
+  const { userId } = req.body.user;
+  const { comment, replyAt, from } = req.body;
+  const { id } = req.params;
+
+  if (comment === null) {
+    return res.status(404).json({ message: "Comment is required." });
+  }
+
+  try {
+    const commentInfo = await Comments.findById(id);
+
+    commentInfo.replies.push({
+      comment,
+      replyAt,
+      from,
+      userId,
+      created_At: Date.now(),
+    });
+
+    commentInfo.save();
+
+    res.status(200).json(commentInfo);
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ message: error.message });
+  }
+};
