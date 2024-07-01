@@ -29,4 +29,8 @@ router.post("/like/:id", userAuth, likePost);
 router.post("/comment/:id", userAuth, commentPost);
 router.post("/like-comment/:id/:rid?", userAuth, likePostComment);
 router.post("/reply-comment/:id", userAuth, replyPostComment);
+
+//delete post
+router.delete("/:id", userAuth, deletePost);
+
 export default router;
