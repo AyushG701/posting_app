@@ -10,6 +10,8 @@ import {
   resetPassword,
   updateUser,
   verifyEmail,
+  suggestedFriends,
+  profileViews,
 } from "../controllers/userController.js";
 // import { resetPasswordLink } from "../utils/sendEmail.js";
 import userAuth from "../middleware/authHandler.js";
